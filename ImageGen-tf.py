@@ -12,7 +12,7 @@ ImgSettings = namedtuple("ImgSettings", "width height "
                                         "mapB maxB")
 
 netSettings = NetSettings(16, 14, 3)
-imgSettings = ImgSettings(200, 150,
+imgSettings = ImgSettings(800, 600,
                           2, 155,
                           2, 155,
                           2, 155)
@@ -29,7 +29,7 @@ for y in range(imgSettings.height):
         data[index][1] = scaledY
         data[index][2] = 1.0  # bias
 
-x = tf.placeholder(tf.float32, shape=[1, 3])
+x = tf.placeholder(tf.float32, shape=[None, 3])
 
 # Output Image
 outputImage = np.empty(imgSettings.width * imgSettings.height * 3, dtype=np.uint8)
@@ -69,12 +69,13 @@ layers.append(y)
 with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
 
-    for index in range(len(data)):
-        result = sess.run(y, feed_dict={x: [data[index]]})
+    result = sess.run(y, feed_dict={x: data})
 
-        r = int(result[0][imgSettings.mapR] * imgSettings.maxR)
-        g = int(result[0][imgSettings.mapG] * imgSettings.maxG)
-        b = int(result[0][imgSettings.mapB] * imgSettings.maxB)
+    for index in range(len(data)):
+
+        r = int(result[index][imgSettings.mapR] * imgSettings.maxR)
+        g = int(result[index][imgSettings.mapG] * imgSettings.maxG)
+        b = int(result[index][imgSettings.mapB] * imgSettings.maxB)
 
         outputImage[index * 3] = r
         outputImage[index * 3 + 1] = g
