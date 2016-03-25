@@ -1,8 +1,11 @@
 import numpy as np
 import tensorflow as tf
 import png
+import time
+
 from collections import namedtuple
 
+start_time = time.time()
 
 # Initialize settings
 NetSettings = namedtuple("NetSettings", "input hidden output")
@@ -13,9 +16,9 @@ ImgSettings = namedtuple("ImgSettings", "width height "
 
 netSettings = NetSettings(16, 14, 3)
 imgSettings = ImgSettings(800, 600,
-                          2, 155,
-                          2, 155,
-                          2, 155)
+                          2, 180,
+                          2, 180,
+                          2, 180)
 
 # Input Vector
 data = np.empty([imgSettings.width * imgSettings.height, 3])
@@ -85,3 +88,4 @@ with open("/Users/caux/Downloads/file.png", 'w') as outfile:
     pngWriter = png.Writer(imgSettings.width, imgSettings.height)
     pngWriter.write(outfile, np.reshape(outputImage, (-1, imgSettings.width*3)))
 
+print("--- %s seconds ---" % (time.time() - start_time))
