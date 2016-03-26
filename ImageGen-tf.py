@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import tensorflow as tf
 import png
@@ -5,87 +6,100 @@ import time
 
 from collections import namedtuple
 
-start_time = time.time()
+def main():
+    start_time = time.time()
 
-# Initialize settings
-NetSettings = namedtuple("NetSettings", "input hidden output")
-ImgSettings = namedtuple("ImgSettings", "width height "
-                                        "mapR maxR "
-                                        "mapG maxG "
-                                        "mapB maxB")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename", help="Output png.")
+    parser.add_argument("-i", help="Number of input nodes.")
+    parser.add_argument("-l", help="Number of hidden layers.")
+    parser.add_argument("-x", help="Image width.")
+    parser.add_argument("-y", help="Image height.")
 
-netSettings = NetSettings(16, 14, 3)
-imgSettings = ImgSettings(800, 600,
-                          2, 180,
-                          2, 180,
-                          2, 180)
+    args = parser.parse_args()
 
-# Input Vector
-data = np.empty([imgSettings.width * imgSettings.height, 3])
+    # Initialize settings
+    NetSettings = namedtuple("NetSettings", "input hidden output")
+    ImgSettings = namedtuple("ImgSettings", "width height "
+                                            "mapR maxR "
+                                            "mapG maxG "
+                                            "mapB maxB")
 
-for y in range(imgSettings.height):
-    for x in range(imgSettings.width):
-        index = y * imgSettings.width + x
-        scaledX = float(x) / imgSettings.width
-        scaledY = float(y) / imgSettings.height
-        data[index][0] = scaledX
-        data[index][1] = scaledY
-        data[index][2] = 1.0  # bias
+    netSettings = NetSettings(int(args.i), int(args.l), 3)
+    imgSettings = ImgSettings(int(args.x), int(args.y),
+                              2, 155,
+                              2, 155,
+                              2, 155)
 
-x = tf.placeholder(tf.float32, shape=[None, 3])
+    # Input Vector
+    data = np.empty([imgSettings.width * imgSettings.height, 3])
 
-# Output Image
-outputImage = np.empty(imgSettings.width * imgSettings.height * 3, dtype=np.uint8)
+    for y in range(imgSettings.height):
+        for x in range(imgSettings.width):
+            index = y * imgSettings.width + x
+            scaledX = float(x) / imgSettings.width
+            scaledY = float(y) / imgSettings.height
+            data[index][0] = scaledX
+            data[index][1] = scaledY
+            data[index][2] = 1.0  # bias
 
-layers = []
-weights = []
+    x = tf.placeholder(tf.float32, shape=[None, 3])
 
-# Input Node
-weightsInput = tf.Variable(
-    tf.random_normal([3, netSettings.input], name="InputWeights"))
-layerInput = tf.tanh(tf.matmul(x, weightsInput))
+    # Output Image
+    outputImage = np.empty(imgSettings.width * imgSettings.height * 3, dtype=np.uint8)
 
-weights.append(weightsInput)
-layers.append(layerInput)
+    layers = []
+    weights = []
 
-# Hidden Node
-for layer in range(1, netSettings.hidden + 1):
-    name = "HiddenWeights" + str(layer)
-    weightsHidden = tf.Variable(tf.random_normal([netSettings.input,
-                                                  netSettings.input],
-                                                 name=name))
-    layerHidden = tf.tanh(tf.matmul(layers[-1], weightsHidden))
+    # Input Node
+    weightsInput = tf.Variable(
+        tf.random_normal([3, netSettings.input], name="InputWeights"))
+    layerInput = tf.tanh(tf.matmul(x, weightsInput))
 
-    weights.append(weightsHidden)
-    layers.append(layerHidden)
+    weights.append(weightsInput)
+    layers.append(layerInput)
 
-# Output Node
-weightsOutput = tf.Variable(
-    tf.random_normal([netSettings.input, netSettings.output],
-                     name="OutputWeights"))
-y = tf.sigmoid(tf.matmul(layers[-1], weightsOutput))
+    # Hidden Node
+    for layer in range(1, netSettings.hidden + 1):
+        name = "HiddenWeights" + str(layer)
+        weightsHidden = tf.Variable(tf.random_normal([netSettings.input,
+                                                      netSettings.input],
+                                                     name=name))
+        layerHidden = tf.tanh(tf.matmul(layers[-1], weightsHidden))
 
-weights.append(weightsOutput)
-layers.append(y)
+        weights.append(weightsHidden)
+        layers.append(layerHidden)
 
-# Run
-with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
+    # Output Node
+    weightsOutput = tf.Variable(
+        tf.random_normal([netSettings.input, netSettings.output],
+                         name="OutputWeights"))
+    y = tf.sigmoid(tf.matmul(layers[-1], weightsOutput))
 
-    result = sess.run(y, feed_dict={x: data})
+    weights.append(weightsOutput)
+    layers.append(y)
 
-    for index in range(len(data)):
+    # Run
+    with tf.Session() as sess:
+        sess.run(tf.initialize_all_variables())
 
-        r = int(result[index][imgSettings.mapR] * imgSettings.maxR)
-        g = int(result[index][imgSettings.mapG] * imgSettings.maxG)
-        b = int(result[index][imgSettings.mapB] * imgSettings.maxB)
+        result = sess.run(y, feed_dict={x: data})
 
-        outputImage[index * 3] = r
-        outputImage[index * 3 + 1] = g
-        outputImage[index * 3 + 2] = b
+        for index in range(len(data)):
 
-with open("/Users/caux/Downloads/file.png", 'w') as outfile:
-    pngWriter = png.Writer(imgSettings.width, imgSettings.height)
-    pngWriter.write(outfile, np.reshape(outputImage, (-1, imgSettings.width*3)))
+            r = int(result[index][imgSettings.mapR] * imgSettings.maxR)
+            g = int(result[index][imgSettings.mapG] * imgSettings.maxG)
+            b = int(result[index][imgSettings.mapB] * imgSettings.maxB)
 
-print("--- %s seconds ---" % (time.time() - start_time))
+            outputImage[index * 3] = r
+            outputImage[index * 3 + 1] = g
+            outputImage[index * 3 + 2] = b
+
+    with open(args.filename, 'w') as outfile:
+        pngWriter = png.Writer(imgSettings.width, imgSettings.height)
+        pngWriter.write(outfile, np.reshape(outputImage, (-1, imgSettings.width*3)))
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+if __name__ == "__main__":
+    main()
