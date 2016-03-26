@@ -11,10 +11,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="Output png.")
-    parser.add_argument("-i", help="Number of input nodes.")
-    parser.add_argument("-l", help="Number of hidden layers.")
-    parser.add_argument("-x", help="Image width.")
-    parser.add_argument("-y", help="Image height.")
+    parser.add_argument("-i", help="Number of input nodes.", type=int, default=16)
+    parser.add_argument("-l", help="Number of hidden layers.", type=int, default=12)
+    parser.add_argument("-x", help="Image width.", type=int, default=800)
+    parser.add_argument("-y", help="Image height.", type=int, default=600)
 
     args = parser.parse_args()
 
@@ -25,8 +25,8 @@ def main():
                                             "mapG maxG "
                                             "mapB maxB")
 
-    netSettings = NetSettings(int(args.i), int(args.l), 3)
-    imgSettings = ImgSettings(int(args.x), int(args.y),
+    netSettings = NetSettings(args.i, args.l, 3)
+    imgSettings = ImgSettings(args.x, args.y,
                               2, 155,
                               2, 155,
                               2, 155)
